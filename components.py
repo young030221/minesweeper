@@ -89,18 +89,36 @@ class Board:
 
     def place_mines(self, safe_col: int, safe_row: int) -> None:
         # TODO: Place mines randomly, guaranteeing the first click and its neighbors are safe. And Compute adjacency counts
-        # all_positions = [(c, r) for r in range(self.rows) for c in range(self.cols)]
-        # forbidden = {(safe_col, safe_row)} | set(self.neighbors(safe_col, safe_row))
-        # pool = [p for p in all_positions if p not in forbidden]
-        # random.shuffle(pool)
+            # 모든 지뢰 지정 가능 위치 저장
+        all_positions = [(c, r) for r in range(self.rows) for c in range(self.cols)]
+        # 첫 클릭한 셀과 그 주변 8방향 은 지뢰 금지 <- 합집합으로 중복없이 9좌표
+        forbidden = {(safe_col, safe_row)} | set(self.neighbors(safe_col, safe_row))
         
-        # Compute adjacency counts
-        # for r in range(self.rows):
-        #     for c in range(self.cols):
-
-        # self._mines_placed = True
-
-        pass
+        
+        pool = [p for p in all_positions if p not in forbidden]
+        random.shuffle(pool)
+        
+        
+        #random 셔플된 pool의 앞에서 mine 개수만큼 선택
+        mine_positions = pool[:self.num_mines]
+        # 해당 위치에 is_mine = true 설정
+        for (c, r) in mine_positions:
+            # cell 객체의 state.is_mine을 true 즉 지뢰 생성.
+            self.cells[self.index(c, r)].state.is_mine = True
+        
+        # 생성된 board에 대해서 인접한 지뢰 숫자를 파악해서 수를 표시
+        for r in range(self.rows):
+            for c in range(self.cols):
+                cell = self.cells[self.index(c, r)]
+                if cell.state.is_mine:
+                    continue  # 지뢰 셀은 계산할 필요 없음
+                count = 0
+                # 주변 8칸 검사
+                for (nc, nr) in self.neighbors(c, r):
+                    if self.cells[self.index(nc, nr)].state.is_mine:
+                        count += 1
+                cell.state.adjacent = count  # 인접 지뢰 개수 저장
+        self._mines_placed = True
 
     def reveal(self, col: int, row: int) -> None:
         # TODO: Reveal a cell; if zero-adjacent, iteratively flood to neighbors.
