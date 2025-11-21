@@ -177,7 +177,8 @@ class Board:
 
     def flagged_count(self) -> int:
         # TODO: Return current number of flagged cells.
-       
+        # cell의 상태가 flagged인 상태마다 1을 더해서 return
+        return sum(1 for cell in self.cells if cell.state.is_flagged)
 
     def _reveal_all_mines(self) -> None:
         """Reveal all mines; called on game over."""
