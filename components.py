@@ -165,14 +165,19 @@ class Board:
 
     def toggle_flag(self, col: int, row: int) -> None:
         # TODO: Toggle a flag on a non-revealed cell.
-        # if not self.is_inbounds(col, row):
-        #     return
+        if not self.is_inbounds(col, row):
+            return 
         
-        pass
+        cell = self.cells[self.index(col,row)]
+
+        if cell.state.is_revealed == True: # 이미 open되어있으면 무시
+            return
+        
+        cell.state.is_flagged = not cell.state.is_flagged # toggle
 
     def flagged_count(self) -> int:
         # TODO: Return current number of flagged cells.
-        pass
+       
 
     def _reveal_all_mines(self) -> None:
         """Reveal all mines; called on game over."""
