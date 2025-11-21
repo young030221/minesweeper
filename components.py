@@ -122,14 +122,46 @@ class Board:
 
     def reveal(self, col: int, row: int) -> None:
         # TODO: Reveal a cell; if zero-adjacent, iteratively flood to neighbors.
-        # if not self.is_inbounds(col, row):
-        #     return
-        # if not self._mines_placed:
-        #     self.place_mines(col, row)
+        # 범위 체크
+        if not self.is_inbounds(col, row):
+            return
+        # 아직 지뢰 배치 안되었다면 (첫클릭이면) place_mines실행
+        if not self._mines_placed:
+            self.place_mines(col, row)
 
+        # 클릭한 cell 가져오기
+        cell = self.cells[self.index(col, row)]
+        # 누른 cell이 만약 깃발이거나, 이미 눌러진 칸이면 클릭 무시
+        if cell.state.is_flagged or cell.state.is_revealed:
+            return
         
-        # self._check_win()
-        pass
+        # 지뢰칸이면 game over
+        if cell.state.is_mine:
+            cell.state.is_revealed = True
+            self.game_over = True
+            self._reveal_all_mines() # 모든 지뢰 위치 보이기
+            return
+        
+        to_reveal = [(col,row)] # DFS방식 을 위한 stack
+        while to_reveal:
+            c,r = to_reveal.pop()
+            cur = self.cells[self.index(c,r)] #객체 참조
+            # 깃발이나 이미 열린 cell은 무시
+            if cur.state.is_revealed or cur.state.is_flagged:
+                continue
+            
+            cur.state.is_revealed = True
+            self.revealed_count += 1
+
+            if cur.state.adjacent == 0:
+                # 주변에 지뢰가 없으면 flood fill 시작
+                for(nc,nr) in self.neighbors(c,r):
+                    ncell = self.cells[self.index(nc,nr)]
+                    if not ncell.state.is_revealed and not ncell.state.is_mine:
+                        #append된 값들은 while문에서 다시 pop되어 조건을 따지고 열리거나 무시되거나 할것
+                        to_reveal.append((nc,nr))
+
+        self._check_win()
 
     def toggle_flag(self, col: int, row: int) -> None:
         # TODO: Toggle a flag on a non-revealed cell.
