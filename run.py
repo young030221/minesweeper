@@ -31,6 +31,7 @@ class Renderer:
         self.font = pygame.font.Font(config.font_name, config.font_size)
         self.header_font = pygame.font.Font(config.font_name, config.header_font_size)
         self.result_font = pygame.font.Font(config.font_name, config.result_font_size)
+        self.font.set_bold(True)
 
     def cell_rect(self, col: int, row: int) -> Rect:
         """Return the rectangle in pixels for the given grid cell."""
