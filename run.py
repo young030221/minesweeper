@@ -192,6 +192,19 @@ class Game:
         self.start_ticks_ms = 0
         self.end_ticks_ms = 0
 
+    # Issue #2: 난이도 변경 메서드
+    def change_difficulty(self, level_key):
+        settings = config.DIFFICULTIES.get(level_key)
+        if settings:
+            config.cols = settings['cols']
+            config.rows = settings['rows']
+            config.num_mines = settings['num_mines']
+            config.width = config.margin_left + config.cols * config.cell_size + config.margin_right
+            config.height = config.margin_top + config.rows * config.cell_size + config.margin_bottom
+            config.display_dimension = (config.width, config.height)
+            self.screen = pygame.display.set_mode(config.display_dimension)
+            self.reset()
+
     def _elapsed_ms(self) -> int:
         """Return elapsed time in milliseconds (stops when game ends)."""
         if not self.started:
@@ -232,13 +245,14 @@ class Game:
         pygame.display.flip()
 
     def run_step(self) -> bool:
-        """Process inputs, update time, draw, and tick the clock once."""
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
+            if event.type == pygame.QUIT: return False
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
-                    self.reset()
+                if event.key == pygame.K_r: self.reset()
+                # Issue #2: 숫자키 입력 처리 [cite: 153]
+                elif event.key == pygame.K_1: self.change_difficulty('1')
+                elif event.key == pygame.K_2: self.change_difficulty('2')
+                elif event.key == pygame.K_3: self.change_difficulty('3')
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.input.handle_mouse(event.pos, event.button)
         if (self.board.game_over or self.board.win) and self.started and not self.end_ticks_ms:
