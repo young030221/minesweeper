@@ -31,6 +31,7 @@ class Renderer:
         self.font = pygame.font.Font(config.font_name, config.font_size)
         self.header_font = pygame.font.Font(config.font_name, config.header_font_size)
         self.result_font = pygame.font.Font(config.font_name, config.result_font_size)
+        self.font.set_bold(True)
 
     def cell_rect(self, col: int, row: int) -> Rect:
         """Return the rectangle in pixels for the given grid cell."""
@@ -182,8 +183,22 @@ class Game:
         self.start_ticks_ms = 0
         self.end_ticks_ms = 0
 
-    def reset(self):
-        """Reset the game state and start a new board."""
+    def reset(self, difficulty_key=None):
+        if difficulty_key and difficulty_key in config.DIFFICULTIES:
+            diff = config.DIFFICULTIES[difficulty_key]
+            # config 값 동적 업데이트
+            config.cols = diff['cols']
+            config.rows = diff['rows']
+            config.num_mines = diff['mines']
+        
+            # 화면 크기 재계산 및 적용
+            config.width = config.margin_left + config.cols * config.cell_size + config.margin_right
+            config.height = config.margin_top + config.rows * config.cell_size + config.margin_bottom
+            config.display_dimension = (config.width, config.height)
+            self.screen = pygame.display.set_mode(config.display_dimension)
+            pygame.display.set_caption(f"{config.title} - {diff['title']}")
+
+        # 보드 및 상태 초기화
         self.board = Board(config.cols, config.rows, config.num_mines)
         self.renderer.board = self.board
         self.highlight_targets.clear()
@@ -239,6 +254,12 @@ class Game:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     self.reset()
+                elif event.key == pygame.K_1:
+                    self.reset('1')
+                elif event.key == pygame.K_2:
+                    self.reset('2')
+                elif event.key == pygame.K_3:
+                    self.reset('3')
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.input.handle_mouse(event.pos, event.button)
         if (self.board.game_over or self.board.win) and self.started and not self.end_ticks_ms:
