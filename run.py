@@ -8,6 +8,8 @@ This module owns:
 
 The logic lives in components.Board; this module should not implement rules.
 """
+import json
+from pathlib import Path
 
 import sys
 
@@ -17,6 +19,21 @@ import config
 from components import Board
 from pygame.locals import Rect
 
+HIGHSCORE_PATH = Path(__file__).with_name("high_scores.json")
+
+def load_highscores() -> dict:
+    if HIGHSCORE_PATH.exists():
+        try:
+            return json.loads(HIGHSCORE_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+def save_highscores(data: dict) -> None:
+    HIGHSCORE_PATH.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
 class Renderer:
     """Draws the Minesweeper UI.
@@ -86,15 +103,30 @@ class Renderer:
         self.screen.blit(right_label, (config.width - right_label.get_width() - 10, 12))
 
     def draw_result_overlay(self, text: str | None) -> None:
-        """Draw a semi-transparent overlay with centered result text, if any."""
+        """Draw a semi-transparent overlay with centered result text (supports multiline)."""
         if not text:
             return
+
         overlay = pygame.Surface((config.width, config.height), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, config.result_overlay_alpha))
         self.screen.blit(overlay, (0, 0))
-        label = self.result_font.render(text, True, config.color_result)
-        rect = label.get_rect(center=(config.width // 2, config.height // 2))
-        self.screen.blit(label, rect)
+
+        lines = text.splitlines()
+        gap = 10
+
+        # 첫 줄(큰 글씨): result_font / 나머지(작은 글씨): header_font
+        surfaces = []
+        for i, line in enumerate(lines):
+            font = self.result_font if i == 0 else self.header_font
+            surfaces.append(font.render(line, True, config.color_result))
+
+        total_h = sum(s.get_height() for s in surfaces) + gap * (len(surfaces) - 1)
+        y = (config.height // 2) - (total_h // 2)
+
+        for s in surfaces:
+            rect = s.get_rect(center=(config.width // 2, y + s.get_height() // 2))
+            self.screen.blit(s, rect)
+            y += s.get_height() + gap
 
 
 class InputController:
@@ -181,6 +213,8 @@ class Game:
         self.started = False
         self.start_ticks_ms = 0
         self.end_ticks_ms = 0
+        self.highscores = load_highscores()
+        self.new_record = False 
 
     def reset(self):
         """Reset the game state and start a new board."""
@@ -191,6 +225,7 @@ class Game:
         self.started = False
         self.start_ticks_ms = 0
         self.end_ticks_ms = 0
+        self.new_record = False
 
     def _elapsed_ms(self) -> int:
         """Return elapsed time in milliseconds (stops when game ends)."""
@@ -209,10 +244,26 @@ class Game:
 
     def _result_text(self) -> str | None:
         """Return result label to display, or None if game continues."""
+        key = self._score_key()
+        best = self.highscores.get(key)
+
+        def fmt_best() -> str:
+            return self._format_time(best) if isinstance(best, int) else "--:--"
+
         if self.board.game_over:
-            return "GAME OVER"
+            return "GAME OVER\nBEST " + fmt_best()
+
         if self.board.win:
-            return "GAME CLEAR"
+            elapsed = self._elapsed_ms()
+            lines = [
+                "GAME CLEAR",
+                "TIME " + self._format_time(elapsed),
+                "BEST " + fmt_best(),
+            ]
+            if self.new_record:
+                lines.append("NEW RECORD!")
+            return "\n".join(lines)
+
         return None
 
     def draw(self):
@@ -243,9 +294,29 @@ class Game:
                 self.input.handle_mouse(event.pos, event.button)
         if (self.board.game_over or self.board.win) and self.started and not self.end_ticks_ms:
             self.end_ticks_ms = pygame.time.get_ticks()
+            self._update_highscore_if_win()
         self.draw()
         self.clock.tick(config.fps)
         return True
+    
+    def _score_key(self) -> str:
+        # 난이도 시스템이 있든 없든 동작하도록, 현재 보드 설정으로 키 생성
+        return f"{config.cols}x{config.rows}-{config.num_mines}"
+
+    def _update_highscore_if_win(self) -> None:
+        """승리 시에만 BEST 기록 갱신/저장."""
+        self.new_record = False
+        if not (self.board.win and self.started and self.end_ticks_ms):
+            return
+
+        key = self._score_key()
+        elapsed = self._elapsed_ms()
+        best = self.highscores.get(key)
+
+        if (best is None) or (elapsed < best):
+            self.highscores[key] = elapsed
+            save_highscores(self.highscores)
+            self.new_record = True
 
 
 def main() -> int:
