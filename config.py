@@ -51,14 +51,14 @@ color_result = (242, 242, 0)
 
 # Number colors 1~8
 number_colors = {
-    1: (25, 118, 210),   # blue
-    2: (56, 142, 60),    # green
-    3: (211, 47, 47),    # red
-    4: (123, 31, 162),   # purple
-    5: (255, 143, 0),    # orange
-    6: (0, 151, 167),    # cyan
-    7: (85, 85, 85),     # gray
-    8: (0, 0, 0),        # black
+    1: (0, 0, 255),      # Pure Blue 
+    2: (0, 128, 0),      # Dark Green 
+    3: (255, 0, 0),      # Pure Red 
+    4: (0, 0, 128),      # Navy Blue 
+    5: (128, 0, 0),      # Maroon 
+    6: (0, 128, 128),    # Teal 
+    7: (0, 0, 0),        # Black 
+    8: (64, 64, 64),     # Dark Gray 
 }
 
 # Text / UI

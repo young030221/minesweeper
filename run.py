@@ -29,6 +29,7 @@ class Renderer:
         self.screen = screen
         self.board = board
         self.font = pygame.font.Font(config.font_name, config.font_size)
+        self.font.set_bold(True)
         self.header_font = pygame.font.Font(config.font_name, config.header_font_size)
         self.result_font = pygame.font.Font(config.font_name, config.result_font_size)
 
