@@ -81,3 +81,26 @@ result_overlay_alpha = 120
 # Misc
 title = "Minesweeper"
 
+DIFFICULTIES = {
+    'easy': {'cols': 9, 'rows': 9, 'mines': 10},
+    'medium': {'cols': 16, 'rows': 16, 'mines': 40},
+    'hard': {'cols': 30, 'rows': 16, 'mines': 99},
+    'very_hard': {'cols': 30, 'rows': 24, 'mines': 150}  # 추가된 부분
+}
+
+def get_screen_size(c, r):
+    w = margin_left + c * cell_size + margin_right
+    h = margin_top + r * cell_size + margin_bottom
+    return (w, h)
+
+def apply_difficulty(level_key: str):
+    """Update global grid settings + derived window size for given difficulty key."""
+    global cols, rows, num_mines, width, height, display_dimension
+
+    settings = DIFFICULTIES[level_key]
+    cols = settings["cols"]
+    rows = settings["rows"]
+    num_mines = settings["mines"]
+
+    width, height = get_screen_size(cols, rows)
+    display_dimension = (width, height)

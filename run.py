@@ -239,6 +239,14 @@ class Game:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     self.reset()
+                elif event.key == pygame.K_1:
+                    self.change_difficulty('easy')
+                elif event.key == pygame.K_2:
+                    self.change_difficulty('medium')
+                elif event.key == pygame.K_3:
+                    self.change_difficulty('hard')
+                elif event.key == pygame.K_4:     
+                    self.change_difficulty('very_hard')
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.input.handle_mouse(event.pos, event.button)
         if (self.board.game_over or self.board.win) and self.started and not self.end_ticks_ms:
@@ -247,6 +255,21 @@ class Game:
         self.clock.tick(config.fps)
         return True
 
+    def change_difficulty(self, level_key: str):
+        """난이도를 변경하고 게임을 재시작합니다."""
+        config.apply_difficulty(level_key)
+
+        # 창 크기 갱신
+        self.screen = pygame.display.set_mode(config.display_dimension)
+
+        # (선택) 타이틀에 난이도 표시
+        pygame.display.set_caption(f"{config.title} ({level_key})")
+
+        # 새 보드/렌더러로 교체 후 리셋
+        self.board = Board(config.cols, config.rows, config.num_mines)
+        self.renderer = Renderer(self.screen, self.board)
+
+        self.reset()
 
 def main() -> int:
     """Application entrypoint: run the main loop until quit."""
