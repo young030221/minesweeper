@@ -8,6 +8,8 @@ This module owns:
 
 The logic lives in components.Board; this module should not implement rules.
 """
+import json
+from pathlib import Path
 
 import sys
 
@@ -16,6 +18,24 @@ import pygame
 import config
 from components import Board
 from pygame.locals import Rect
+
+HIGHSCORE_PATH = Path(__file__).with_name("high_scores.json")
+
+
+def load_highscores() -> dict:
+    if HIGHSCORE_PATH.exists():
+        try:
+            return json.loads(HIGHSCORE_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def save_highscores(data: dict) -> None:
+    HIGHSCORE_PATH.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
 
 class Renderer:
@@ -71,30 +91,62 @@ class Renderer:
                 )
         pygame.draw.rect(self.screen, config.color_grid, rect, 1)
 
-    def draw_header(self, remaining_mines: int, time_text: str) -> None:
+    def draw_header(self, remaining_mines: int, time_text: str, urgent: bool = False) -> None:
         """Draw the header bar containing remaining mines and elapsed time."""
         pygame.draw.rect(
             self.screen,
             config.color_header,
             Rect(0, 0, config.width, config.margin_top - 4),
         )
+
         left_text = f"Mines: {remaining_mines}"
         right_text = f"Time: {time_text}"
+
         left_label = self.header_font.render(left_text, True, config.color_header_text)
-        right_label = self.header_font.render(right_text, True, config.color_header_text)
-        self.screen.blit(left_label, (10, 12))
-        self.screen.blit(right_label, (config.width - right_label.get_width() - 10, 12))
+
+        # Time 색상 결정
+        right_color = config.color_header_text
+        if urgent:
+            if getattr(config, "timer_blink_interval_ms", 0) and config.timer_blink_interval_ms > 0:
+                blink_on = (pygame.time.get_ticks() // config.timer_blink_interval_ms) % 2 == 0
+                right_color = config.color_timer_urgent if blink_on else config.color_header_text
+            else:
+                right_color = config.color_timer_urgent
+
+        right_label = self.header_font.render(right_text, True, right_color)
+
+        # 위치 잡아서 그리기
+        left_rect = left_label.get_rect(midleft=(10, (config.margin_top - 4) // 2))
+        right_rect = right_label.get_rect(midright=(config.width - 10, (config.margin_top - 4) // 2))
+
+        self.screen.blit(left_label, left_rect)
+        self.screen.blit(right_label, right_rect)
 
     def draw_result_overlay(self, text: str | None) -> None:
-        """Draw a semi-transparent overlay with centered result text, if any."""
+        """Draw a semi-transparent overlay with centered result text (supports multiline)."""
         if not text:
             return
+
         overlay = pygame.Surface((config.width, config.height), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, config.result_overlay_alpha))
         self.screen.blit(overlay, (0, 0))
-        label = self.result_font.render(text, True, config.color_result)
-        rect = label.get_rect(center=(config.width // 2, config.height // 2))
-        self.screen.blit(label, rect)
+
+        lines = text.splitlines()
+        gap = 10
+
+        # 첫 줄(큰 글씨): result_font / 나머지(작은 글씨): header_font
+        surfaces = []
+        for i, line in enumerate(lines):
+            font = self.result_font if i == 0 else self.header_font
+            surfaces.append(font.render(line, True, config.color_result))
+
+        total_h = sum(s.get_height() for s in surfaces) + gap * (len(surfaces) - 1)
+        y = (config.height // 2) - (total_h // 2)
+
+        for s in surfaces:
+            rect = s.get_rect(center=(config.width // 2, y + s.get_height() // 2))
+            self.screen.blit(s, rect)
+            y += s.get_height() + gap
 
 
 class InputController:
@@ -132,10 +184,10 @@ class InputController:
         # 왼쪽 버튼: reveal (칸 열기)
         # -------------------------------------
         if button == config.mouse_left:  # 왼쪽 버튼 클릭
-            game.highlight_targets.clear() # 하이라이트 초기화
+            game.highlight_targets.clear()  # 하이라이트 초기화
 
             # 첫 클릭이면 타이머 시작
-            if not game.started: 
+            if not game.started:
                 game.started = True
                 game.start_ticks_ms = pygame.time.get_ticks()
 
@@ -145,8 +197,8 @@ class InputController:
         # -------------------------------------
         # 오른쪽 버튼: flag toggle (깃발 꽂기/빼기)
         # -------------------------------------
-        elif button == config.mouse_right: # 오른쪽 버튼 클릭
-            game.highlight_targets.clear() # 하이라이트 초기화
+        elif button == config.mouse_right:  # 오른쪽 버튼 클릭
+            game.highlight_targets.clear()  # 하이라이트 초기화
             board.toggle_flag(col, row)
 
         # -------------------------------------
@@ -156,14 +208,13 @@ class InputController:
             neighbors = board.neighbors(col, row)
 
             game.highlight_targets = {
-                (nc, nr)  # 하이라이트 대상 좌표  
-                for (nc, nr) in neighbors #주변 칸들중에
-                if not board.cells[board.index(nc, nr)].state.is_revealed # 열리지 않은 칸만 하이라이트
+                (nc, nr)  # 하이라이트 대상 좌표
+                for (nc, nr) in neighbors  # 주변 칸들중에
+                if not board.cells[board.index(nc, nr)].state.is_revealed  # 열리지 않은 칸만 하이라이트
             }
             game.highlight_until_ms = pygame.time.get_ticks() + config.highlight_duration_ms
             # 전체 게임 진행 시간 + 하이라이트 지속 시간 의 시간까지 highlight 유지 #draw에서 처리
 
-        
 
 class Game:
     """Main application object orchestrating loop and high-level state."""
@@ -181,6 +232,8 @@ class Game:
         self.started = False
         self.start_ticks_ms = 0
         self.end_ticks_ms = 0
+        self.highscores = load_highscores()
+        self.new_record = False
 
     def reset(self):
         """Reset the game state and start a new board."""
@@ -191,6 +244,7 @@ class Game:
         self.started = False
         self.start_ticks_ms = 0
         self.end_ticks_ms = 0
+        self.new_record = False
 
     def _elapsed_ms(self) -> int:
         """Return elapsed time in milliseconds (stops when game ends)."""
@@ -209,10 +263,26 @@ class Game:
 
     def _result_text(self) -> str | None:
         """Return result label to display, or None if game continues."""
+        key = self._score_key()
+        best = self.highscores.get(key)
+
+        def fmt_best() -> str:
+            return self._format_time(best) if isinstance(best, int) else "--:--"
+
         if self.board.game_over:
-            return "GAME OVER"
+            return "GAME OVER\nBEST " + fmt_best()
+
         if self.board.win:
-            return "GAME CLEAR"
+            elapsed = self._elapsed_ms()
+            lines = [
+                "GAME CLEAR",
+                "TIME " + self._format_time(elapsed),
+                "BEST " + fmt_best(),
+            ]
+            if self.new_record:
+                lines.append("BEST RECORD!")
+            return "\n".join(lines)
+
         return None
 
     def draw(self):
@@ -221,8 +291,10 @@ class Game:
             self.highlight_targets.clear()
         self.screen.fill(config.color_bg)
         remaining = max(0, config.num_mines - self.board.flagged_count())
-        time_text = self._format_time(self._elapsed_ms())
-        self.renderer.draw_header(remaining, time_text)
+        elapsed_ms = self._elapsed_ms()
+        time_text = self._format_time(elapsed_ms)
+        urgent = elapsed_ms >= config.timer_urgent_after_ms
+        self.renderer.draw_header(remaining, time_text, urgent)
         now = pygame.time.get_ticks()
         for r in range(self.board.rows):
             for c in range(self.board.cols):
@@ -236,21 +308,71 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     self.reset()
+
                 elif event.key == pygame.K_i:
                     if not self.started:
                         self.started = True
                         self.start_ticks_ms = pygame.time.get_ticks()
                     self.board.reveal_random_safe_cell()
+
+                elif event.key == pygame.K_1:
+                    self.change_difficulty("easy")
+                elif event.key == pygame.K_2:
+                    self.change_difficulty("medium")
+                elif event.key == pygame.K_3:
+                    self.change_difficulty("hard")
+                elif event.key == pygame.K_4:
+                    self.change_difficulty("very_hard")
+
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.input.handle_mouse(event.pos, event.button)
+
         if (self.board.game_over or self.board.win) and self.started and not self.end_ticks_ms:
             self.end_ticks_ms = pygame.time.get_ticks()
+            self._update_highscore_if_win()
+
         self.draw()
         self.clock.tick(config.fps)
         return True
+
+    def _score_key(self) -> str:
+        # 난이도 시스템이 있든 없든 동작하도록, 현재 보드 설정으로 키 생성
+        return f"{config.cols}x{config.rows}-{config.num_mines}"
+
+    def _update_highscore_if_win(self) -> None:
+        """승리 시에만 BEST 기록 갱신/저장."""
+        self.new_record = False
+        if not (self.board.win and self.started and self.end_ticks_ms):
+            return
+
+        key = self._score_key()
+        elapsed = self._elapsed_ms()
+        best = self.highscores.get(key)
+
+        if (best is None) or (elapsed < best):
+            self.highscores[key] = elapsed
+            save_highscores(self.highscores)
+            self.new_record = True
+
+    def change_difficulty(self, level_key: str):
+        """난이도를 변경하고 게임을 재시작합니다."""
+        config.apply_difficulty(level_key)
+
+        # 창 크기 갱신
+        self.screen = pygame.display.set_mode(config.display_dimension)
+
+        # (선택) 타이틀에 난이도 표시
+        pygame.display.set_caption(f"{config.title} ({level_key})")
+
+        # 새 보드/렌더러로 교체 후 리셋
+        self.board = Board(config.cols, config.rows, config.num_mines)
+        self.renderer = Renderer(self.screen, self.board)
+
+        self.reset()
 
 
 def main() -> int:
