@@ -71,19 +71,37 @@ class Renderer:
                 )
         pygame.draw.rect(self.screen, config.color_grid, rect, 1)
 
-    def draw_header(self, remaining_mines: int, time_text: str) -> None:
+    def draw_header(self, remaining_mines: int, time_text: str, urgent: bool = False) -> None:
         """Draw the header bar containing remaining mines and elapsed time."""
         pygame.draw.rect(
             self.screen,
             config.color_header,
             Rect(0, 0, config.width, config.margin_top - 4),
         )
+
         left_text = f"Mines: {remaining_mines}"
         right_text = f"Time: {time_text}"
+
         left_label = self.header_font.render(left_text, True, config.color_header_text)
-        right_label = self.header_font.render(right_text, True, config.color_header_text)
-        self.screen.blit(left_label, (10, 12))
-        self.screen.blit(right_label, (config.width - right_label.get_width() - 10, 12))
+
+        # Time 색상 결정
+        right_color = config.color_header_text
+        if urgent:
+            if getattr(config, "timer_blink_interval_ms", 0) and config.timer_blink_interval_ms > 0:
+                blink_on = (pygame.time.get_ticks() // config.timer_blink_interval_ms) % 2 == 0
+                right_color = config.color_timer_urgent if blink_on else config.color_header_text
+            else:
+                right_color = config.color_timer_urgent
+
+        right_label = self.header_font.render(right_text, True, right_color)
+
+        # 위치 잡아서 그리기
+        left_rect = left_label.get_rect(midleft=(10, (config.margin_top - 4) // 2))
+        right_rect = right_label.get_rect(midright=(config.width - 10, (config.margin_top - 4) // 2))
+
+        self.screen.blit(left_label, left_rect)
+        self.screen.blit(right_label, right_rect)
+
 
     def draw_result_overlay(self, text: str | None) -> None:
         """Draw a semi-transparent overlay with centered result text, if any."""
@@ -221,8 +239,10 @@ class Game:
             self.highlight_targets.clear()
         self.screen.fill(config.color_bg)
         remaining = max(0, config.num_mines - self.board.flagged_count())
-        time_text = self._format_time(self._elapsed_ms())
-        self.renderer.draw_header(remaining, time_text)
+        elapsed_ms = self._elapsed_ms()
+        time_text = self._format_time(elapsed_ms)
+        urgent = elapsed_ms >= config.timer_urgent_after_ms
+        self.renderer.draw_header(remaining, time_text, urgent)
         now = pygame.time.get_ticks()
         for r in range(self.board.rows):
             for c in range(self.board.cols):
