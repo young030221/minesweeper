@@ -261,7 +261,7 @@ class Game:
                 "BEST " + fmt_best(),
             ]
             if self.new_record:
-                lines.append("NEW RECORD!")
+                lines.append("BEST RECORD!")
             return "\n".join(lines)
 
         return None
