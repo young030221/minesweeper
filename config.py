@@ -51,14 +51,14 @@ color_result = (242, 242, 0)
 
 # Number colors 1~8
 number_colors = {
-    1: (0, 0, 255),      # Pure Blue 
-    2: (0, 128, 0),      # Dark Green 
-    3: (255, 0, 0),      # Pure Red 
-    4: (0, 0, 128),      # Navy Blue 
-    5: (128, 0, 0),      # Maroon 
-    6: (0, 128, 128),    # Teal 
-    7: (0, 0, 0),        # Black 
-    8: (64, 64, 64),     # Dark Gray 
+    1: (255, 0, 0),      # Red (빨강)
+    2: (255, 165, 0),    # Orange (주황)
+    3: (255, 255, 0),    # Yellow (노랑)
+    4: (0, 255, 0),      # Green (초록)
+    5: (0, 0, 255),      # Blue (파랑)
+    6: (75, 0, 130),     # Indigo (남색)
+    7: (238, 130, 238),  # Violet (보라)
+    8: (128, 128, 128),  # Gray (회색)
 }
 
 # Text / UI
