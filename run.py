@@ -21,6 +21,7 @@ from pygame.locals import Rect
 
 HIGHSCORE_PATH = Path(__file__).with_name("high_scores.json")
 
+
 def load_highscores() -> dict:
     if HIGHSCORE_PATH.exists():
         try:
@@ -29,11 +30,13 @@ def load_highscores() -> dict:
             return {}
     return {}
 
+
 def save_highscores(data: dict) -> None:
     HIGHSCORE_PATH.write_text(
         json.dumps(data, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
 
 class Renderer:
     """Draws the Minesweeper UI.
@@ -119,7 +122,6 @@ class Renderer:
         self.screen.blit(left_label, left_rect)
         self.screen.blit(right_label, right_rect)
 
-
     def draw_result_overlay(self, text: str | None) -> None:
         """Draw a semi-transparent overlay with centered result text (supports multiline)."""
         if not text:
@@ -182,10 +184,10 @@ class InputController:
         # 왼쪽 버튼: reveal (칸 열기)
         # -------------------------------------
         if button == config.mouse_left:  # 왼쪽 버튼 클릭
-            game.highlight_targets.clear() # 하이라이트 초기화
+            game.highlight_targets.clear()  # 하이라이트 초기화
 
             # 첫 클릭이면 타이머 시작
-            if not game.started: 
+            if not game.started:
                 game.started = True
                 game.start_ticks_ms = pygame.time.get_ticks()
 
@@ -195,8 +197,8 @@ class InputController:
         # -------------------------------------
         # 오른쪽 버튼: flag toggle (깃발 꽂기/빼기)
         # -------------------------------------
-        elif button == config.mouse_right: # 오른쪽 버튼 클릭
-            game.highlight_targets.clear() # 하이라이트 초기화
+        elif button == config.mouse_right:  # 오른쪽 버튼 클릭
+            game.highlight_targets.clear()  # 하이라이트 초기화
             board.toggle_flag(col, row)
 
         # -------------------------------------
@@ -206,14 +208,13 @@ class InputController:
             neighbors = board.neighbors(col, row)
 
             game.highlight_targets = {
-                (nc, nr)  # 하이라이트 대상 좌표  
-                for (nc, nr) in neighbors #주변 칸들중에
-                if not board.cells[board.index(nc, nr)].state.is_revealed # 열리지 않은 칸만 하이라이트
+                (nc, nr)  # 하이라이트 대상 좌표
+                for (nc, nr) in neighbors  # 주변 칸들중에
+                if not board.cells[board.index(nc, nr)].state.is_revealed  # 열리지 않은 칸만 하이라이트
             }
             game.highlight_until_ms = pygame.time.get_ticks() + config.highlight_duration_ms
             # 전체 게임 진행 시간 + 하이라이트 지속 시간 의 시간까지 highlight 유지 #draw에서 처리
 
-        
 
 class Game:
     """Main application object orchestrating loop and high-level state."""
@@ -232,7 +233,7 @@ class Game:
         self.start_ticks_ms = 0
         self.end_ticks_ms = 0
         self.highscores = load_highscores()
-        self.new_record = False 
+        self.new_record = False
 
     def reset(self):
         """Reset the game state and start a new board."""
@@ -307,26 +308,37 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     self.reset()
+
+                elif event.key == pygame.K_i:
+                    if not self.started:
+                        self.started = True
+                        self.start_ticks_ms = pygame.time.get_ticks()
+                    self.board.reveal_random_safe_cell()
+
                 elif event.key == pygame.K_1:
-                    self.change_difficulty('easy')
+                    self.change_difficulty("easy")
                 elif event.key == pygame.K_2:
-                    self.change_difficulty('medium')
+                    self.change_difficulty("medium")
                 elif event.key == pygame.K_3:
-                    self.change_difficulty('hard')
-                elif event.key == pygame.K_4:     
-                    self.change_difficulty('very_hard')
+                    self.change_difficulty("hard")
+                elif event.key == pygame.K_4:
+                    self.change_difficulty("very_hard")
+
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.input.handle_mouse(event.pos, event.button)
+
         if (self.board.game_over or self.board.win) and self.started and not self.end_ticks_ms:
             self.end_ticks_ms = pygame.time.get_ticks()
             self._update_highscore_if_win()
+
         self.draw()
         self.clock.tick(config.fps)
         return True
-    
+
     def _score_key(self) -> str:
         # 난이도 시스템이 있든 없든 동작하도록, 현재 보드 설정으로 키 생성
         return f"{config.cols}x{config.rows}-{config.num_mines}"
@@ -361,6 +373,7 @@ class Game:
         self.renderer = Renderer(self.screen, self.board)
 
         self.reset()
+
 
 def main() -> int:
     """Application entrypoint: run the main loop until quit."""

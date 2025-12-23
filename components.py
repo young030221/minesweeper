@@ -194,3 +194,32 @@ class Board:
             for cell in self.cells:
                 if not cell.state.is_revealed and not cell.state.is_mine:
                     cell.state.is_revealed = True
+
+    def reveal_random_safe_cell(self) -> bool:
+        """H키 힌트: 지뢰가 아닌, 아직 안 열린 칸 1개를 랜덤으로 '딱 1칸만' 엽니다."""
+        if self.game_over or self.win:
+            return False
+
+        # 지뢰가 아직 배치 안 됐으면(첫 행동이 H일 때) 먼저 배치
+        if not self._mines_placed:
+            c = random.randrange(self.cols)
+            r = random.randrange(self.rows)
+            self.place_mines(c, r)
+
+        # 후보: 안 열림 + 깃발 아님 + 지뢰 아님
+        candidates = [
+            cell for cell in self.cells
+            if (not cell.state.is_revealed) and (not cell.state.is_flagged) and (not cell.state.is_mine)
+        ]
+        if not candidates:
+            return False
+
+        pick = random.choice(candidates)
+
+        # "한 칸만" 열기: reveal() 호출 금지 (flood fill 방지)
+        pick.state.is_revealed = True
+        self.revealed_count += 1
+        self._check_win()
+        return True
+
+    
