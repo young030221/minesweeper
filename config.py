@@ -84,7 +84,8 @@ title = "Minesweeper"
 DIFFICULTIES = {
     'easy': {'cols': 9, 'rows': 9, 'mines': 10},
     'medium': {'cols': 16, 'rows': 16, 'mines': 40},
-    'hard': {'cols': 30, 'rows': 16, 'mines': 99}
+    'hard': {'cols': 30, 'rows': 16, 'mines': 99},
+    'very_hard': {'cols': 30, 'rows': 24, 'mines': 150}  # 추가된 부분
 }
 
 def get_screen_size(c, r):

@@ -245,6 +245,8 @@ class Game:
                     self.change_difficulty('medium')
                 elif event.key == pygame.K_3:
                     self.change_difficulty('hard')
+                elif event.key == pygame.K_4:     
+                    self.change_difficulty('very_hard')
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.input.handle_mouse(event.pos, event.button)
         if (self.board.game_over or self.board.win) and self.started and not self.end_ticks_ms:
