@@ -77,7 +77,7 @@ highlight_duration_ms = 600
 # Timer urgent effect
 timer_urgent_after_ms = 5 * 60 * 1000      # 5 minutes
 timer_blink_interval_ms = 500              # blink every 0.5 sec (0이면 깜빡임 없음)
-color_timer_urgent = (255, 80, 80)         # urgent red
+color_timer_urgent = (255, 0, 255)         # urgent red
 
 # Overlay alpha for result background (0~255)
 result_overlay_alpha = 120
