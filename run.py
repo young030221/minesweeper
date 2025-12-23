@@ -239,7 +239,7 @@ class Game:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     self.reset()
-                elif event.key == pygame.K_h:
+                elif event.key == pygame.K_i:
                     if not self.started:
                         self.started = True
                         self.start_ticks_ms = pygame.time.get_ticks()
